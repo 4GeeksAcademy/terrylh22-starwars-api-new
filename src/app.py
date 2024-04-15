@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Planets, People
 #from models import Person
 
 app = Flask(__name__)
@@ -37,13 +37,64 @@ def sitemap():
     return generate_sitemap(app)
 
 @app.route('/user', methods=['GET'])
-def handle_hello():
+def get_users():
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
+    users = User.query.all()
+    all_users = list(map(lambda x: x.serialize(), users))
 
-    return jsonify(response_body), 200
+    return jsonify(all_users), 200
+
+@app.route('/user/<int:user_id>', methods=['GET'])
+def get_specific_user(user_id):
+    user = User.query.get(user_id)
+    if user is None:
+        return jsonify({'message': 'User not found'}), 404
+
+    return jsonify(user.serialize()), 200
+
+
+@app.route('/user', methods=['POST'])
+def add_user():
+
+    request = request.get_json()
+
+    user1 = User(first_name=request["first_name"], last_name=request["last_name"], email=request["email"], username=request["username"])
+    db.session.add(user1)
+    db.session.commit()
+
+    return jsonify(request), 200
+
+
+@app.route('/planets', methods=['GET'])
+def get_planets():
+
+    planets = Planets.query.all()
+    all_planets = list(map(lambda x: x.serialize(), planets))
+
+    return jsonify(all_planets), 200
+
+@app.route('/planets/<int:planet_id>', methods=['GET'])
+def get_specific_planet(planet_id):
+    planet = Planets.query.get(planet_id)
+    if planet is None:
+        return jsonify({'message': 'Planet not found'}), 404
+    return jsonify(planet.serialize()), 200
+
+@app.route('/people', methods=['GET'])
+def get_people():
+
+    people = People.query.all()
+    all_people = list(map(lambda x: x.serialize(), people))
+
+    return jsonify(all_people), 200
+
+@app.route('/people/<int:people_id>', methods=['GET'])
+def get_specific_person(people_id):
+    people = People.query.get(people_id)
+    if people is None:
+        return jsonify({'message': 'Person not found'}), 404
+    return jsonify(people.serialize()), 200
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
