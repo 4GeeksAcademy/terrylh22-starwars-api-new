@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Planets, People
+from models import db, User, Planets, People, user_favorite_planets, user_favorite_people
 #from models import Person
 
 app = Flask(__name__)
@@ -56,13 +56,37 @@ def get_specific_user(user_id):
 @app.route('/user', methods=['POST'])
 def add_user():
 
-    request = request.get_json()
+    requested = request.get_json()
 
-    user1 = User(first_name=request["first_name"], last_name=request["last_name"], email=request["email"], username=request["username"])
+    user1 = User(first_name=requested["first_name"], last_name=requested["last_name"], email=requested["email"], username=requested["username"], password=requested["password"])
     db.session.add(user1)
     db.session.commit()
 
-    return jsonify(request), 200
+    return jsonify(requested), 200
+
+@app.route('/users/favorites', methods=['GET'])
+def get_favorites():
+    users = User.query.with_entities(User.favorite_planets, User.favorite_people).all()
+    favorites = [{'favorite_planets': user.favorite_planets, 'favorite_people': user.favorite_people} for user in users]
+
+    return jsonify(favorites), 200
+
+@app.route('/favorite', methods=['POST'])
+def add_favorite_planet():
+    requested = request.get_json()
+    favorite = {}
+    if requested.get('planet_id'):
+        favorite = user_favorite_planets(user_id=requested["planet_id"], planet_id=requested["planet_id"])
+        db.session.add(favorite)
+        db.session.commit()
+        return jsonify("planet added to favorite"), 200
+    elif requested.get('person_id'):
+        favorite = user_favorite_planets(user_id=requested["user_id"], person_id=requested["person_id"])
+        db.session.add(favorite)
+        db.session.commit()
+        return jsonify("person added to favorite"), 200
+    else:
+        return jsonify("no favorite found to add"), 200
 
 
 @app.route('/planets', methods=['GET'])
